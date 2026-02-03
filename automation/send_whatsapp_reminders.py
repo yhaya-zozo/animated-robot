@@ -38,7 +38,12 @@ def send_whatsapp_message(
     sender_id: str,
     phone: str,
     message: str,
+    dry_run: bool,
 ) -> None:
+    if dry_run:
+        print(f"[DRY RUN] To: {phone} | Message: {message}")
+        return
+
     url = f"{base_url.rstrip('/')}/messages"
     payload = {
         "to": phone,
@@ -67,6 +72,7 @@ def main() -> None:
     sender_id = os.getenv("WHATSAPP_SENDER_ID")
 
     reminder_days = int(os.getenv("REMINDER_DAYS_BEFORE", "1"))
+    dry_run = os.getenv("DRY_RUN", "false").lower() in {"1", "true", "yes"}
 
     col_name = os.getenv("COL_NAME", "الاسم")
     col_phone = os.getenv("COL_PHONE", "رقم الواتساب")
@@ -119,8 +125,9 @@ def main() -> None:
         template = templates.get(template_key, templates.get("Template_A", ""))
         message = build_message(template, name, parsed_date.strftime("%Y-%m-%d"))
 
-        send_whatsapp_message(base_url, token, sender_id, phone, message)
-        worksheet.update_cell(idx, header_map[col_sent], "Yes")
+        send_whatsapp_message(base_url, token, sender_id, phone, message, dry_run)
+        if not dry_run:
+            worksheet.update_cell(idx, header_map[col_sent], "Yes")
         updated_rows += 1
 
     print(f"Sent {updated_rows} reminders.")
